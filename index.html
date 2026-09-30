@@ -1,0 +1,379 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>FinTech Blockchain Simulator - Mining</title>
+<style>
+*{box-sizing:border-box}body{margin:0;background:#f4f7fb;color:#172033;font-family:Arial,sans-serif}
+header{background:#172033;color:white;text-align:center;padding:24px}
+header h1{margin:0 0 6px}header p{margin:0;color:#cbd5e1}
+main{max-width:1000px;margin:auto;padding:18px}
+.card{background:#fff;border-radius:16px;padding:20px;margin-bottom:16px;box-shadow:0 3px 12px #0001}
+h2{margin:0 0 12px}.wallets{display:grid;grid-template-columns:repeat(3,1fr);gap:10px}
+.wallet{background:#f1f5f9;border-radius:12px;padding:14px;text-align:center}.coin{font-size:27px;font-weight:800;margin-top:5px}
+.grid{display:grid;grid-template-columns:1fr 1fr;gap:16px}
+label{display:block;font-weight:bold;margin-top:10px}select,input,button{width:100%;padding:12px;margin-top:6px;border-radius:9px;border:1px solid #cbd5e1;font-size:15px}
+button{background:#2563eb;color:#fff;border:0;font-weight:bold;cursor:pointer}button:disabled{background:#94a3b8;cursor:not-allowed}
+.green{background:#16a34a}.red{background:#dc2626}.gray{background:#475569}.orange{background:#ea580c}
+.info{background:#f1f5f9;border-radius:10px;padding:12px;margin-top:10px;line-height:1.55}
+.hash{font:12px monospace;word-break:break-all;background:#e2e8f0;padding:9px;border-radius:7px;margin-top:6px}
+.status{text-align:center;padding:15px;border-radius:10px;background:#f1f5f9;font-size:20px;font-weight:800}
+.ok{background:#dcfce7;color:#166534}.bad{background:#fee2e2;color:#991b1b}
+.log{background:#0f172a;color:#d1fae5;border-radius:10px;padding:14px;min-height:160px;font:13px/1.6 monospace;white-space:pre-wrap}
+.block{border:2px solid #bfdbfe;border-radius:12px;padding:14px;margin-top:10px;background:#f8fbff}.block.bad{border-color:#ef4444;background:#fff7f7}
+.miningbox{background:#0f172a;color:#d1fae5;border-radius:10px;padding:14px;font:13px/1.5 monospace;max-height:230px;overflow:auto;margin-top:12px}
+.progress{height:10px;background:#e5e7eb;border-radius:20px;overflow:hidden;margin-top:10px}.bar{height:100%;width:0;background:#2563eb;transition:width .15s}
+.big{font-size:30px;font-weight:800}.small{font-size:13px;color:#64748b}
+@media(max-width:700px){.grid{grid-template-columns:1fr}.wallets{grid-template-columns:1fr}}
+</style>
+</head>
+<body>
+<header>
+<h1>⛓️ FinTech Blockchain Simulator</h1>
+<p>Transaksi → Validasi → Block → Hash → Mining → Uji Manipulasi</p>
+</header>
+<main>
+
+<div class="card">
+<h2>💰 Wallet</h2>
+<div class="wallets">
+<div class="wallet">👤 Wallet A<div class="coin"><span id="balA">100</span> COIN</div></div>
+<div class="wallet">👤 Wallet B<div class="coin"><span id="balB">100</span> COIN</div></div>
+<div class="wallet">👤 Wallet C<div class="coin"><span id="balC">100</span> COIN</div></div>
+</div>
+</div>
+
+<div class="card">
+<h2>① 💸 Buat Transaksi</h2>
+<div class="grid">
+<div>
+<label>Pengirim</label>
+<select id="from"><option value="A">Wallet A</option><option value="B">Wallet B</option><option value="C">Wallet C</option></select>
+</div>
+<div>
+<label>Penerima</label>
+<select id="to"><option value="B">Wallet B</option><option value="A">Wallet A</option><option value="C">Wallet C</option></select>
+</div>
+</div>
+<label>Jumlah COIN</label>
+<input id="amount" type="number" min="1" value="10">
+<button onclick="createTx()">💸 Buat Transaksi</button>
+<div id="txMsg"></div>
+</div>
+
+<div class="grid">
+<div class="card">
+<h2>② 🔍 Validasi</h2>
+<p class="small">Cek pengirim, penerima, jumlah, dan saldo.</p>
+<button id="validateBtn" onclick="validateTx()" disabled>Validasi Transaksi</button>
+<div id="validateMsg"></div>
+</div>
+<div class="card">
+<h2>③ 📦 Block</h2>
+<p class="small">Transaksi valid dicatat ke block.</p>
+<button id="blockBtn" onclick="makeBlock()" disabled>Masukkan ke Block</button>
+<div id="blockMsg"></div>
+</div>
+</div>
+
+<div class="card">
+<h2>④ 🔐 Hash Block</h2>
+<p>Hash adalah "sidik jari digital" dari data block.</p>
+<button id="hashBtn" onclick="makeHash()" disabled>🔐 Buat Hash</button>
+<div id="hashMsg"></div>
+</div>
+
+<div class="card">
+<h2>⑤ ⛏️ Mining / Proof of Work</h2>
+<div class="info">
+<b>Fungsi mining:</b> miner mencoba berbagai <b>nonce</b> sampai mendapatkan hash yang memenuhi target/difficulty.
+<br><br>
+Ini adalah simulasi konsep <b>Proof of Work</b>, bukan mining cryptocurrency sungguhan.
+</div>
+
+<label>Difficulty</label>
+<select id="difficulty">
+<option value="easy">🟢 Easy — hash diawali 0</option>
+<option value="medium">🟡 Medium — hash diawali 00</option>
+<option value="hard">🔴 Hard — hash diawali 000</option>
+</select>
+
+<button id="mineBtn" class="orange" onclick="mine()" disabled>⛏️ Mulai Mining</button>
+
+<div class="grid">
+<div class="info"><div class="small">Nonce</div><div class="big" id="nonce">-</div></div>
+<div class="info"><div class="small">Percobaan</div><div class="big" id="attempts">0</div></div>
+</div>
+<div class="info"><b>Target:</b> <span id="targetText">-</span></div>
+<div class="progress"><div class="bar" id="bar"></div></div>
+<div id="miningMsg"></div>
+<div id="miningLog" class="miningbox">Mining belum dimulai.</div>
+</div>
+
+<div class="card">
+<h2>⑥ ⚠️ Uji Manipulasi Data</h2>
+<p>Setelah block di-mine, coba ubah data untuk melihat mengapa perubahan dapat terdeteksi.</p>
+<button id="tamperBtn" class="red" onclick="tamper()" disabled>⚠️ Ubah Data Block</button>
+<div id="tamperMsg"></div>
+</div>
+
+<div class="card">
+<h2>⛓️ Status Blockchain</h2>
+<div id="status" class="status">🟡 Genesis Block siap — belum ada transaksi</div>
+<div id="chain"></div>
+</div>
+
+<div class="card">
+<h2>📜 Activity Log</h2>
+<div id="log" class="log">[SYSTEM] Simulator siap.
+[SYSTEM] Genesis Block tersedia.</div>
+</div>
+
+<div class="card">
+<h2>🎓 Penjelasan Mining untuk Mahasiswa</h2>
+<div class="info">
+<b>Mining</b> adalah proses mencoba berbagai <b>nonce</b> sampai mendapatkan hash yang memenuhi <b>target</b>.
+<br><br>
+<b>Nonce</b> = angka yang dicoba-coba.
+<br>
+<b>Hash</b> = hasil dari data block + nonce.
+<br>
+<b>Target</b> = syarat yang harus dipenuhi hash.
+<br><br>
+Contoh:
+<br>Target: hash harus diawali <b>00</b>
+<br>Nonce 0 → A83F... ❌
+<br>Nonce 1 → 7BC2... ❌
+<br>Nonce 2 → F912... ❌
+<br>...
+<br>Nonce 47 → 00C8... ✅
+<br><br>
+<b>Kenapa perlu?</b> Pada Proof of Work, miner harus melakukan pekerjaan komputasi dengan mencoba nonce sampai menemukan hash yang memenuhi target.
+<br><br>
+<b>Difficulty:</b> Easy = 1 angka 0, Medium = 2 angka 0, Hard = 3 angka 0 di awal hash. Semakin banyak 0 yang diminta, rata-rata semakin banyak nonce yang harus dicoba.
+<br><br>
+<b>Catatan:</b> Bitcoin menggunakan SHA-256 dan difficulty yang jauh lebih kompleks. Simulator ini menggunakan hash sederhana dan hanya menyederhanakan konsep agar mudah dipahami.
+</div>
+</div>
+
+<button class="gray" onclick="resetAll()">↻ Reset Simulasi</button>
+</main>
+
+<script>
+let balances={A:100,B:100,C:100};
+let tx=null, block=null, originalHash="", mined=false;
+let difficulty={easy:1,medium:2,hard:3};
+
+function simpleHash(text){
+  text=String(text);
+  let h=2166136261;
+  for(let i=0;i<text.length;i++){
+    h^=text.charCodeAt(i);
+    h=Math.imul(h,16777619);
+  }
+  return (h>>>0).toString(16).padStart(8,"0")+"-"+text.length;
+}
+
+function log(text){
+  let el=document.getElementById("log");
+  el.textContent="["+new Date().toLocaleTimeString("id-ID")+"] "+text+"\\n"+el.textContent;
+}
+
+function show(id,text){document.getElementById(id).innerHTML='<div class="info">'+text+'</div>'}
+function setStatus(text,type=""){let e=document.getElementById("status");e.textContent=text;e.className="status "+type}
+function updateBalances(){
+  ["A","B","C"].forEach(x=>document.getElementById("bal"+x).textContent=balances[x]);
+}
+
+function createTx(){
+  let from=document.getElementById("from").value;
+  let to=document.getElementById("to").value;
+  let amount=Number(document.getElementById("amount").value);
+
+  if(from===to){show("txMsg","❌ Pengirim dan penerima tidak boleh sama.");return}
+  if(!Number.isInteger(amount)||amount<=0){show("txMsg","❌ Jumlah harus lebih dari 0.");return}
+  if(amount>balances[from]){show("txMsg","❌ Saldo Wallet "+from+" hanya "+balances[from]+" COIN.");return}
+
+  tx={from,to,amount};
+  document.getElementById("validateBtn").disabled=false;
+  document.getElementById("blockBtn").disabled=true;
+  document.getElementById("hashBtn").disabled=true;
+  document.getElementById("mineBtn").disabled=true;
+  document.getElementById("tamperBtn").disabled=true;
+
+  show("txMsg","✅ <b>Wallet "+from+" → Wallet "+to+" : "+amount+" COIN</b>");
+  setStatus("🟡 Menunggu validasi");
+  log("Transaksi dibuat: "+from+" → "+to+" : "+amount+" COIN");
+}
+
+function validateTx(){
+  if(!tx)return;
+  if(tx.amount<=balances[tx.from]){
+    document.getElementById("validateBtn").disabled=true;
+    document.getElementById("blockBtn").disabled=false;
+    show("validateMsg","✅ <b>VALID</b> — saldo mencukupi.");
+    setStatus("🟢 Transaksi VALID","ok");
+    log("Transaksi berhasil divalidasi.");
+  }
+}
+
+function makeBlock(){
+  if(!tx)return;
+  block={
+    number:1,
+    data:"Wallet "+tx.from+" → Wallet "+tx.to+" : "+tx.amount+" COIN",
+    previousHash:"GENESIS",
+    hash:"",
+    nonce:null
+  };
+  balances[tx.from]-=tx.amount;
+  balances[tx.to]+=tx.amount;
+  updateBalances();
+  document.getElementById("blockBtn").disabled=true;
+  document.getElementById("hashBtn").disabled=false;
+  show("blockMsg","📦 <b>Block #1 berhasil dibuat.</b><br>"+block.data);
+  setStatus("🔵 Block #1 dibuat");
+  log("Block #1 dibuat.");
+  renderChain();
+}
+
+function makeHash(){
+  if(!block)return;
+  block.hash=simpleHash(block.number+"|"+block.data+"|"+block.previousHash);
+  originalHash=block.hash;
+  document.getElementById("hashBtn").disabled=true;
+  document.getElementById("mineBtn").disabled=false;
+  show("hashMsg","🔐 <b>Hash berhasil dibuat:</b><div class='hash'>"+block.hash+"</div>");
+  setStatus("🟢 Hash Block tersedia","ok");
+  log("Hash awal Block #1 dibuat: "+block.hash);
+  renderChain();
+}
+
+function mine(){
+  if(!block)return;
+
+  let level=document.getElementById("difficulty").value;
+  let zeros=difficulty[level];
+  let target="0".repeat(zeros);
+  let nonce=0, attempts=0, hash="";
+  let lines=[];
+
+  document.getElementById("mineBtn").disabled=true;
+  document.getElementById("tamperBtn").disabled=true;
+
+  document.getElementById("targetText").innerHTML=
+    'Hash harus diawali <b>"'+target+'"</b>';
+
+  document.getElementById("miningLog").textContent="⛏️ Mining dimulai...\n";
+  document.getElementById("nonce").textContent="-";
+  document.getElementById("attempts").textContent="0";
+  document.getElementById("bar").style.width="0%";
+
+  // Coba nonce satu per satu sampai hash memenuhi target.
+  while(nonce < 1000000){
+    hash=simpleHash(block.number+"|"+block.data+"|"+block.previousHash+"|"+nonce);
+    attempts++;
+
+    let isValid=hash.split("-")[0].startsWith(target);
+
+    if(attempts<=12 || isValid || attempts%1000===0){
+      lines.push("Nonce "+nonce+" → "+hash+" "+(isValid?"✅":"❌"));
+    }
+
+    if(isValid) break;
+
+    nonce++;
+    document.getElementById("attempts").textContent=attempts;
+    document.getElementById("nonce").textContent=nonce;
+    document.getElementById("bar").style.width=
+      Math.min(95,(attempts/10000)*100)+"%";
+  }
+
+  if(nonce>=1000000){
+    show("miningMsg",
+      "❌ Belum menemukan nonce dalam 1.000.000 percobaan. "+
+      "Untuk demo, coba Difficulty Easy."
+    );
+    document.getElementById("mineBtn").disabled=false;
+    return;
+  }
+
+  block.nonce=nonce;
+  block.hash=hash;
+  originalHash=hash;
+  mined=true;
+
+  document.getElementById("nonce").textContent=nonce;
+  document.getElementById("attempts").textContent=attempts;
+  document.getElementById("bar").style.width="100%";
+
+  document.getElementById("miningLog").textContent=
+    lines.join("\n")+
+    "\n\nNonce "+nonce+" → "+hash+" ✅ BERHASIL";
+
+  show("miningMsg",
+    "🎉 <b>Mining berhasil!</b><br>"+
+    "Nonce: <b>"+nonce+"</b><br>"+
+    "Percobaan: <b>"+attempts+"</b><br>"+
+    "Target: Hash harus diawali <b>"+target+"</b><br>"+
+    "Hash: <b>"+hash+"</b><br><br>"+
+    "Artinya, nonce tersebut menghasilkan hash yang memenuhi target."
+  );
+
+  document.getElementById("tamperBtn").disabled=false;
+  setStatus("🟢 BLOCK BERHASIL DI-MINE","ok");
+  log("Mining berhasil. Nonce="+nonce+" | Percobaan="+attempts+" | Target="+target);
+  renderChain();
+}
+
+function tamper(){
+  if(!block||!mined)return;
+  let old=block.data;
+  block.data=old.replace(/: \d+ COIN$/,": 999 COIN");
+  let newHash=simpleHash(block.number+"|"+block.data+"|"+block.previousHash+"|"+block.nonce);
+  document.getElementById("tamperBtn").disabled=true;
+  show("tamperMsg","🚨 Data diubah dari <b>"+old+"</b> menjadi <b>"+block.data+"</b>.<br><br>Hash tersimpan:<div class='hash'>"+originalHash+"</div>Hash jika dihitung ulang:<div class='hash'>"+newHash+"</div><br><b>Hash berbeda → perubahan terdeteksi.</b>");
+  setStatus("🔴 INVALID — DATA BLOCK DIUBAH","bad");
+  log("⚠️ Block #1 dimanipulasi. Hash tidak lagi cocok.");
+  renderChain();
+}
+
+function renderChain(){
+  let el=document.getElementById("chain");
+  let genesis="<div class='block'><b>Block #0 — GENESIS</b><div class='hash'>Hash: GENESIS</div></div>";
+  if(!block){el.innerHTML=genesis;return}
+  let current=simpleHash(block.number+"|"+block.data+"|"+block.previousHash+"|"+(block.nonce===null?"":block.nonce));
+  let valid=!mined || current===block.hash;
+  el.innerHTML=genesis+
+  "<div style='text-align:center;font-size:24px'>↓</div>"+
+  "<div class='block "+(valid?"":"bad")+"'><b>Block #1</b> — "+(valid?"🟢 VALID":"🔴 INVALID")+
+  "<div class='info'>"+block.data+"</div>"+
+  "<div class='hash'>Previous Hash: "+block.previousHash+"</div>"+
+  "<div class='hash'>Hash: "+(block.hash||"(belum dibuat)")+"</div>"+
+  (block.nonce!==null?"<div class='hash'>Nonce: "+block.nonce+"</div>":"")+
+  "</div>";
+}
+
+function resetAll(){
+  balances={A:100,B:100,C:100};tx=null;block=null;originalHash="";mined=false;
+  updateBalances();
+  ["txMsg","validateMsg","blockMsg","hashMsg","miningMsg","tamperMsg"].forEach(id=>document.getElementById(id).innerHTML="");
+  document.getElementById("validateBtn").disabled=true;
+  document.getElementById("blockBtn").disabled=true;
+  document.getElementById("hashBtn").disabled=true;
+  document.getElementById("mineBtn").disabled=true;
+  document.getElementById("tamperBtn").disabled=true;
+  document.getElementById("nonce").textContent="-";
+  document.getElementById("attempts").textContent="0";
+  document.getElementById("targetText").textContent="-";
+  document.getElementById("bar").style.width="0";
+  document.getElementById("miningLog").textContent="Mining belum dimulai.";
+  document.getElementById("log").textContent="[SYSTEM] Simulator di-reset.\n[SYSTEM] Genesis Block tersedia.\n";
+  setStatus("🟡 Genesis Block siap — belum ada transaksi");
+  renderChain();
+}
+resetAll();
+</script>
+</body>
+</html>
